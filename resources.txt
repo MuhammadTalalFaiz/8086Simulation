@@ -1,2 +1,0 @@
-#[sample 8086 compiler](https://yjdoc2.github.io/8086-emulator-web/)
-
