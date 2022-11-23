@@ -17,7 +17,7 @@
 * changes in register will occur on the basis of assembly language not machine code
 * instruction cycles will be hardcoded for each cycle
 * separate window for highlighting cycles and alu operation
-**(extra effort: comparison of previous register snapshot)**
+***(extra effort: comparison of previous register snapshot)***
 
 # Instructions:
 
