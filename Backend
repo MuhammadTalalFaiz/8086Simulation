@@ -1,0 +1,101 @@
+# -*- coding: utf-8 -*-
+"""
+Spyder Editor
+
+This is a temporary script file.
+"""
+
+InstructionSetOpCode={
+    "mov":"000000",
+    "add":"000001",
+    "sub":"000010",
+    "inc":"000011",
+    "dec":"000100",
+    "mul":"000101",
+    "div":"000110",
+    "and":"000111",
+    "or":"001000",
+    "not":"001001"
+    }
+RegistersCode={
+    "ax":"000",
+    "bx":"011",
+    "cx":"001",
+    "dx":"010",
+    "sp":"100",
+    "bp":"101",
+    "si":"110",
+    "di":"111"
+    }
+MemoryValue={
+    "[0h]":"00h",
+    "[1h]":"00h",
+    "[2h]":"00h",
+    "[3h]":"00h",
+    "[4h]":"00h",
+    "[5h]":"00h",
+    "[6h]":"00h",
+    "[7h]":"00h",
+    "[8h]":"00h",
+    "[9h]":"00h",
+    "[ah]":"00h",
+    "[bh]":"00h",
+    "[ch]":"00h",
+    "[dh]":"00h",
+    "[eh]":"00h",
+    "[fh]":"00h"
+    }
+MemoryCode={
+    "[0h]":"0000 0000 0000 0000 0000",
+    "[1h]":"0000 0000 0000 0000 0001",
+    "[2h]":"0000 0000 0000 0000 0010",
+    "[3h]":"0000 0000 0000 0000 0011",
+    "[4h]":"0000 0000 0000 0000 0100",
+    "[5h]":"0000 0000 0000 0000 0101",
+    "[6h]":"0000 0000 0000 0000 0110",
+    "[7h]":"0000 0000 0000 0000 0111",
+    "[8h]":"0000 0000 0000 0000 1000",
+    "[9h]":"0000 0000 0000 0000 1001",
+    "[ah]":"0000 0000 0000 0000 1010",
+    "[bh]":"0000 0000 0000 0000 1011",
+    "[ch]":"0000 0000 0000 0000 1100",
+    "[dh]":"0000 0000 0000 0000 1101",
+    "[eh]":"0000 0000 0000 0000 1110",
+    "[fh]":"0000 0000 0000 0000 1111"
+    }
+Example="MOV AX,[Ah]"
+def OpCodeGenerator(Instruction):
+    global InstructionSplit
+    InstructionSplit=Instruction.lower().split(" ",1)
+    global OpCode
+    OpCode=InstructionSplit[0]
+    
+    print(InstructionSetOpCode[OpCode])
+    
+def OperandGenerator(InstructionSplit):
+    print(InstructionSplit)
+    OperandSplit=(InstructionSplit[1]).split(",",1)
+    print(OperandSplit)
+    global Operand1
+    global Operand2
+    if (len(OperandSplit)==1):
+        
+        Operand1=OperandSplit[1]
+        print(Operand1)
+    elif (len(OperandSplit)==2):
+        Operand1=OperandSplit[0]
+        Operand2=OperandSplit[1]
+        
+        print(Operand1)
+        print(Operand2)
+def DGenerator(Operand1):
+    if (Operand1 in RegistersCode):
+        D="0"
+    elif (Operand1 in MemoryValue):
+        D="1"
+        
+        
+OpCodeGenerator(Example)
+OperandGenerator(InstructionSplit)
+DGenerator(Operand1)
+    
