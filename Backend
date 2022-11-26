@@ -90,9 +90,26 @@ def OperandGenerator(InstructionSplit):
         print(Operand2)
 def DGenerator(Operand1):
     if (Operand1 in RegistersCode):
-        D="0"
-    elif (Operand1 in MemoryValue):
         D="1"
+    elif (Operand1 in MemoryValue):
+        D="0"
+    else:
+        D="-1"
+        
+
+def WGenerator(operand2):
+    global W
+    if(operand2 in RegistersCode):
+        W="1"
+    elif(operand2 in ["al","ah","bl","bh","cl","ch","dl","dh"]):
+        W="0"
+    elif(len(operand2)==2 ):
+        W="-1"
+    elif(len(operand2)==4):
+        W="-1"
+    else:
+        W=-1
+
         
         
 OpCodeGenerator(Example)
