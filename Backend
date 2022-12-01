@@ -1,3 +1,5 @@
+
+#Make Invalid Function which checks if Invalid already then reutrn Invalid TRUE IF NOT THEN PERFORM EXTRA CHECKS AND RETURN TRUE OR FALSE
 InstructionSetOpCode={
     "mov":"000000",
     "add":"000001",
@@ -9,6 +11,9 @@ InstructionSetOpCode={
     "and":"000111",
     "or":"001000",
     "not":"001001"
+    #ror store in Deue and Use built in Rotate
+    #rol
+    
     }
 RegistersCode={
     "ax":"000",
@@ -100,53 +105,132 @@ def OperandGenerator(InstructionSplit):
         
         print(Operand1)
         print(Operand2)
+def MemoryComponentBool():
+    global Direct
+    Direct=False
+    global Immediate
+    Immediate=False
+    global RegisterDirect
+    RegisterDirect=False
+    global RegisterIndirect
+    RegisterIndirect=False
+    global RegisterRelativeOperand1
+    RegisterRelativeOperand1=False
+    global RegisterRelativeOperand2
+    RegisterRelativeOperand2=False
+    global Displacement
+    if (Operand1 in RegistersCode and Operand2 in RegistersCode):
+        RegisterDirect=True
+        return
+    if (Operand2[0]!="[" and Operand2 not in RegistersCode):
+        Immediate=True
+        return
+    if (Operand1[0]=="[" and Operand2[0]=="["):
+        global Error
+        Error=True
+        return
+    if (Operand1[0]=='['):
+        #Memory
+        if (Operand1 in MemoryCode):
+            Direct=True
+        elif (Operand1.split("[",1)[1].split(']',1)[0] in RegistersCode):
+            RegisterIndirect=True
+        elif ("+" in Operand1):
+            RegisterRelativeOperand1=True
+    elif (Operand2[0]=='['):
+        if (Operand2 in MemoryCode):
+            Direct=True
+        elif (Operand2.split("[",1)[1].split(']',1)[0] in RegistersCode):
+            RegisterDirect=True
+        elif ("+" in Operand2):
+            RegisterRelativeOperand2=True
+   
+    
 def ModGenerator():
     global MOD
-    #Immediate
-    if (Operand2[0] != '[' and Operand2 not in RegistersCode):
-         MOD=00
-         return
-    #Register Direct
-    if (Operand1 in RegistersCode and Operand2 in RegistersCode):
+    if (Immediate):
         MOD="11"
-    #Direct and RegisterIndirect
-    elif (((Operand1 in MemoryCode or Operand1.split("[",1)[1].split(']',1)[0] in RegistersCode)
-          and Operand2 in RegistersCode) or
-          ((Operand2 in MemoryCode or Operand2.split("[",1)[1].split(']',1)[0] in RegistersCode) and Operand1 in RegistersCode)):
+        return
+    if (RegisterDirect):
+        MOD="11"
+    if (RegisterRelativeOperand1 or RegisterRelativeOperand2):
+        MOD="01"
+    elif (Operand1[0]=="[" or Operand2[0]=="["):
         MOD="00"
-    #RegisterRelative 
-    elif('['+Operand1.split("[",1)[1].split(']',1)[0].split("+",1)[1]+']' in MemoryCode and '['+Operand2.split("[",1)[1].split(']',1)[0].split("+",1)[1]+']' in MemoryCode):
-        MOD="01"
-    elif ('['+Operand1.split("[",1)[1].split(']',1)[0].split("+",1)[1]+']' in MemoryCode and Operand2 in RegistersCode):
-        MOD="01"
-    elif(Operand2.split("[",1)[1].split(']',1)[0].split("+",1)[1] in MemoryCode and Operand1 in RegistersCode):
-        MOD="01"
     else:
         MOD="-11"
-        
-
+def DGenerator():
+    global D
+    if (Immediate):
+        D="0"
+        return
+    if (Operand2 in RegistersCode and (Operand1[0]=="[" or Operand1 in RegistersCode)):
+        D="0"
+    elif (Operand1 in RegistersCode and (Operand2[0]=="[" or Operand2 in RegistersCode)):
+        D="1"
+    
 def WGenerator():
     global W
     if(Operand2 in ["al","ah","bl","bh","cl","ch","dl","dh"]):
+        W="0"
+    elif(Operand2 in ["ax","bx","cx","dx"]):
         W="1"
-    elif(Operand2 in ["al","ah","bl","bh","cl","ch","dl","dh"]):
-        W="0"s
-    elif(len(Operand2)==2 ):
-        W="1"
-    elif(len(Operand2)==4):
-        W="1"
+    elif(Operand2 in MemoryCode ):
+        W="0"
+    elif(RegisterRelativeOperand2):
+        W="0"
     else:
+       # Error=True
         W="-1"
-
+def RegGenerator():
+    global REG
+    global R_M
+    if (D=="1"):
+        if (MOD=="11"):
+            REG=RegistersCode[Operand1]
+            if(not Immediate):
+                R_M=RegistersCode[Operand2]
+            else:
+                R_M="000"
+        elif (MOD=="01"):
+             Displacement=Operand1[4:6]
+             REG=RegistersCode[Operand1[1:3]]
+             R_M=RegistersCode[Operand2]
+        elif (MOD=="00"):
+            REG=RegistersCode[Operand1[1:3]]
+            R_M=RegistersCode[Operand2]
+    elif(D=='0'):
+        if (MOD=="11"):
+            R_M=RegistersCode[Operand1]
+            if(not Immediate):
+                REG=RegistersCode[Operand2]
+            else:
+                REG="000"
+        elif (MOD=="01"):
+             Displacement=Operand1[4:6]
+             R_M=RegistersCode[Operand1[1:3]]
+             REG=RegistersCode[Operand2]
+        elif (MOD=="00"):
+            R_M=RegistersCode[Operand1[1:3]]
+            REG=RegistersCode[Operand2]
+            
+def MachineCodeGenerator(Instruction):
+    OpCodeGenerator(Instruction)
+    OperandGenerator(InstructionSplit)
+    MemoryComponentBool()
+    DGenerator()
+    ModGenerator()
+    WGenerator()
+    print(OpCode+D+W+MOD+)
         
         
 OpCodeGenerator(Example)
 OperandGenerator(InstructionSplit)
-print(Operand1.split("[",1)[1].split(']',1)[0].split("+",1)[1])
 
 
-ModGenerator()
 
-print(MOD)
 
-print(Operand1.split("[",1)[1].split(']',1)[0].split("+",1)[1])
+
+
+
+print("+" in Operand1)
