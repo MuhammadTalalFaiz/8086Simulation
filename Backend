@@ -1,5 +1,6 @@
-
+Invalid=False
 #Make Invalid Function which checks if Invalid already then reutrn Invalid TRUE IF NOT THEN PERFORM EXTRA CHECKS AND RETURN TRUE OR FALSE
+
 InstructionSetOpCode={
     "mov":"000000",
     "add":"000001",
@@ -34,6 +35,7 @@ RegistersCode={
     "di":"111"
     
     }
+
 RegistersValue={
     "ax":[0,0,0,0],
     "bx":[0,0,0,0],
@@ -80,24 +82,35 @@ MemoryCode={
     "[eh]":"0000 0000 0000 0000 1110",
     "[fh]":"0000 0000 0000 0000 1111"
     }
-Example="MOV [AX+1h],[Ah]"
+def get_key(val):
+    for key, value in RegistersCode.items():
+        if val == value:
+            return key
+def get_mkey(val):
+    for key, value in MemoryCode.items():
+        if val == value:
+            return key
+Example="mov ax,bx"
 def OpCodeGenerator(Instruction):
     global InstructionSplit
     InstructionSplit=Instruction.lower().split(" ",1)
     global OpCode
-    OpCode=InstructionSplit[0]
+    Code=InstructionSplit[0]
+    OpCode=InstructionSetOpCode[Code]
     
     #print(InstructionSetOpCode[OpCode])
     
 def OperandGenerator(InstructionSplit):
+    global Operand2
+    Operand2=""
    # print(InstructionSplit)
     OperandSplit=(InstructionSplit[1]).split(",",1)
     #print(OperandSplit)
     global Operand1
-    global Operand2
+    
     if (len(OperandSplit)==1):
         
-        Operand1=OperandSplit[1]
+        Operand1=OperandSplit[0]
      #   print(Operand1)
     elif (len(OperandSplit)==2):
         Operand1=OperandSplit[0]
@@ -106,6 +119,8 @@ def OperandGenerator(InstructionSplit):
         print(Operand1)
         print(Operand2)
 def MemoryComponentBool():
+    global ImmediateValue
+    ImmediateValue=""
     global Direct
     Direct=False
     global Immediate
@@ -118,41 +133,51 @@ def MemoryComponentBool():
     RegisterRelativeOperand1=False
     global RegisterRelativeOperand2
     RegisterRelativeOperand2=False
-    global Displacement
     if (Operand1 in RegistersCode and Operand2 in RegistersCode):
         RegisterDirect=True
+        print(1)
         return
     if (Operand2[0]!="[" and Operand2 not in RegistersCode):
         Immediate=True
-        return
+        
+        ImmediateValue=Operand2
+        print(2)
     if (Operand1[0]=="[" and Operand2[0]=="["):
         global Error
         Error=True
+        print(3)
         return
     if (Operand1[0]=='['):
         #Memory
         if (Operand1 in MemoryCode):
             Direct=True
+            print(4)
         elif (Operand1.split("[",1)[1].split(']',1)[0] in RegistersCode):
             RegisterIndirect=True
+            print(5)
         elif ("+" in Operand1):
             RegisterRelativeOperand1=True
+            print(6)
     elif (Operand2[0]=='['):
         if (Operand2 in MemoryCode):
             Direct=True
+            print(7)
         elif (Operand2.split("[",1)[1].split(']',1)[0] in RegistersCode):
             RegisterDirect=True
+            print(8)
         elif ("+" in Operand2):
             RegisterRelativeOperand2=True
+            print(9)
    
     
 def ModGenerator():
     global MOD
-    if (Immediate):
+    if (Immediate and Operand1 in RegistersCode):
         MOD="11"
         return
     if (RegisterDirect):
         MOD="11"
+        return
     if (RegisterRelativeOperand1 or RegisterRelativeOperand2):
         MOD="01"
     elif (Operand1[0]=="[" or Operand2[0]=="["):
@@ -168,9 +193,12 @@ def DGenerator():
         D="0"
     elif (Operand1 in RegistersCode and (Operand2[0]=="[" or Operand2 in RegistersCode)):
         D="1"
+    else:
+        D="-1"
     
 def WGenerator():
     global W
+
     if(Operand2 in ["al","ah","bl","bh","cl","ch","dl","dh"]):
         W="0"
     elif(Operand2 in ["ax","bx","cx","dx"]):
@@ -179,26 +207,40 @@ def WGenerator():
         W="0"
     elif(RegisterRelativeOperand2):
         W="0"
+    elif(Immediate):
+        if(len(ImmediateValue)==2 or len(ImmediateValue)==3 ):
+            W="0"
+        elif(len(ImmediateValue)==4 or len(ImmediateValue)==5):
+            W="1"
+        else:
+            W="-1"
     else:
        # Error=True
         W="-1"
 def RegGenerator():
     global REG
     global R_M
+    global Displacement
+    REG=-111
+    R_M=-111
+    Displacement=""
     if (D=="1"):
-        if (MOD=="11"):
+        if (MOD=="11"): 
             REG=RegistersCode[Operand1]
-            if(not Immediate):
-                R_M=RegistersCode[Operand2]
-            else:
-                R_M="000"
-        elif (MOD=="01"):
-             Displacement=Operand1[4:6]
-             REG=RegistersCode[Operand1[1:3]]
-             R_M=RegistersCode[Operand2]
-        elif (MOD=="00"):
-            REG=RegistersCode[Operand1[1:3]]
             R_M=RegistersCode[Operand2]
+        elif (MOD=="01"):
+             Displacement=Operand2[4:6]
+             REG=RegistersCode[Operand1]
+             R_M="111" #If want to change value of BP,KOSOMAK then we need add condition here and refer to table
+            
+        elif (MOD=="00"):
+            REG=RegistersCode[Operand1]
+            if(Operand2 in MemoryCode):
+                R_M="110" #Refer to Sir tABLE IN SLIDES
+            elif (Operand2 in RegistersCode):
+                R_M="111"
+       
+            
     elif(D=='0'):
         if (MOD=="11"):
             R_M=RegistersCode[Operand1]
@@ -207,30 +249,101 @@ def RegGenerator():
             else:
                 REG="000"
         elif (MOD=="01"):
+             
              Displacement=Operand1[4:6]
-             R_M=RegistersCode[Operand1[1:3]]
-             REG=RegistersCode[Operand2]
+             R_M="111"
+             if(not Immediate):
+                 REG=RegistersCode[Operand2]
+             else:
+                 REG="000"
         elif (MOD=="00"):
-            R_M=RegistersCode[Operand1[1:3]]
-            REG=RegistersCode[Operand2]
-            
+            if(Operand1 in MemoryCode):
+                R_M="110"
+            elif(Operand1 in RegistersCode):
+                R_M="111"
+            if(not Immediate):
+                REG=RegistersCode[Operand2]
+            else:
+                REG="000"
+    
 def MachineCodeGenerator(Instruction):
+    global MachineCode
     OpCodeGenerator(Instruction)
     OperandGenerator(InstructionSplit)
-    MemoryComponentBool()
-    DGenerator()
-    ModGenerator()
-    WGenerator()
-    print(OpCode+D+W+MOD+)
+    if (Operand2!=""):
+        MemoryComponentBool()
+        DGenerator()
+        ModGenerator()
+        WGenerator()
+        RegGenerator()
+        Mismatch()
+        MachineCode=OpCode+" "+D+" "+W+" "+MOD+" "+REG+" "+R_M+" "+ImmediateValue+" "+Displacement
+    else:
+        if (Operand1 in RegistersCode):
+            Operand=RegistersCode[Operand1]
+        elif (Operand1 in MemoryCode):
+            Operand=110
+        elif (Operand1[1:3] in RegistersCode):
+            Operand=111
+        MachineCode=OpCode+" "+"x"+" "+"x"+" "+"x"+" "+Operand
+        # SET Unnecessary Bits to 0 for Unary Operators
+def Mismatch():
+    if (Operand2 in ["ax","bx","cx","dx"] and Operand1 in ["al","ah","bl","bh","cl","ch","dl","dh"]):
+        global Invalid
+        Invalid=True
+def MOV():
+    if(D=='0'):
+      if(MOD=="11"):
+         if(not Immediate):
+              if(W=='1'):
+                  RegistersValue[get_key(R_M)]=RegistersValue[get_key(REG)]
+              elif(W=='0'):
+                  if(get_key(REG) in ["al","bl","cl","dl"]):
+                      if(get_key(R_M) in ["al","bl","cl","dl"]):
+                          RegistersValue[get_key(R_M)][3]=RegistersValue[get_key(REG)][3]
+                          RegistersValue[get_key(R_M)][2]=RegistersValue[get_key(REG)][2]
+                  
+                      elif(get_key(R_M) in ["ah","bh","ch","dh"]):
+                          RegistersValue[get_key(R_M)][1]=RegistersValue[get_key(REG)][3]
+                          RegistersValue[get_key(R_M)][0]=RegistersValue[get_key(REG)][2]
+                  elif(get_key(REG) in ["ah","bh","ch","dh"]):
+                       if(get_key(R_M) in ["al","bl","cl","dl"]):
+                           RegistersValue[get_key(R_M)][3]=RegistersValue[get_key(REG)][1]
+                           RegistersValue[get_key(R_M)][2]=RegistersValue[get_key(REG)][0]
+                   
+                       elif(get_key(R_M) in ["ah","bh","ch","dh"]):
+                           RegistersValue[get_key(R_M)][1]=RegistersValue[get_key(REG)][1]
+                           RegistersValue[get_key(R_M)][0]=RegistersValue[get_key(REG)][0]  
+         else:
+             if(W=="1"):
+                 for i in range(3):
+                     RegistersValue[get_key(R_M)][i]=ImmediateValue[i]
+             elif(W=="0"):
+                 if(get_key(R_M) in ["al","bl","cl","dl"]):
+                     RegistersValue[get_key(R_M)][3]=ImmediateValue[1]
+                     RegistersValue[get_key(R_M)][2]=ImmediateValue[0]
+                 elif(get_key(R_M) in ["ah","bh","ch","dh"]):
+                    RegistersValue[get_key(R_M)][1]=ImmediateValue[1]
+                    RegistersValue[get_key(R_M)][0]=ImmediateValue[0]  
+    elif(MOD=="00"):
+        if(not Immediate):
+            if(W=='1'):
+                MemoryValue[get_mkey(R_M)]=RegistersValue[get_key(REG)]
+                
+#def Execute():
+    
+    
         
         
-OpCodeGenerator(Example)
-OperandGenerator(InstructionSplit)
+MachineCodeGenerator(Example)
+MOV(REG,R_M)
+print(RegistersValue["ah"])
+print(RegistersValue["al"])
+RegistersValue[get_key(R_M)]=RegistersValue[get_key(REG)]
+print(RegistersValue[get_key(R_M)])
+print(MachineCode)
+print(Invalid)
 
 
 
 
-
-
-
-print("+" in Operand1)
