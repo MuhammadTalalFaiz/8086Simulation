@@ -37,16 +37,16 @@ RegistersCode={
     }
 
 RegistersValue={
-    "ax":[0,0,0,0],
-    "bx":[0,0,0,0],
-    "cx":[0,0,0,0],
-    "dx":[0,0,0,0],
-    "sp":[0,0,0,0],
-    "bp":[0,0,0,0],
-    "si":[0,0,0,0],
-    "di":[0,0,0,0]
+    "ax":["0","0","0","0"],
+    "bx":["1","0","1","0"],
+    "cx":["0","0","0","0"],
+    "dx":["0","0","0","0"],
+    "sp":["0","0","0","0"],
+    "bp":["0","0","0","0"],
+    "si":["0","0","0","0"],
+    "di":["0","0","0","0"]
     }
-MemoryValue={
+MemoryValue={#Note: MOV FUNCTION CHANGES THESE VALUES BUT DOESNOT CHANGE IT IN CODE AS SHOWN BELOW
     "[0h]":"00h",
     "[1h]":"00h",
     "[2h]":"00h",
@@ -90,7 +90,7 @@ def get_mkey(val):
     for key, value in MemoryCode.items():
         if val == value:
             return key
-Example="mov ax,bx"
+Example="mov [0h],Bx"
 def OpCodeGenerator(Instruction):
     global InstructionSplit
     InstructionSplit=Instruction.lower().split(" ",1)
@@ -291,6 +291,7 @@ def Mismatch():
     if (Operand2 in ["ax","bx","cx","dx"] and Operand1 in ["al","ah","bl","bh","cl","ch","dl","dh"]):
         global Invalid
         Invalid=True
+    #DisplacementCHECK
 def MOV():
     if(D=='0'):
       if(MOD=="11"):
@@ -304,16 +305,16 @@ def MOV():
                           RegistersValue[get_key(R_M)][2]=RegistersValue[get_key(REG)][2]
                   
                       elif(get_key(R_M) in ["ah","bh","ch","dh"]):
-                          RegistersValue[get_key(R_M)][1]=RegistersValue[get_key(REG)][3]
-                          RegistersValue[get_key(R_M)][0]=RegistersValue[get_key(REG)][2]
+                          RegistersValue[get_key(str(int(R_M)-100))][1]=RegistersValue[get_key(REG)][3]
+                          RegistersValue[get_key(str(int(R_M)-100))][0]=RegistersValue[get_key(REG)][2]
                   elif(get_key(REG) in ["ah","bh","ch","dh"]):
                        if(get_key(R_M) in ["al","bl","cl","dl"]):
-                           RegistersValue[get_key(R_M)][3]=RegistersValue[get_key(REG)][1]
-                           RegistersValue[get_key(R_M)][2]=RegistersValue[get_key(REG)][0]
+                           RegistersValue[get_key(R_M)][3]=RegistersValue[get_key(str(int(REG)-100))][1]
+                           RegistersValue[get_key(R_M)][2]=RegistersValue[get_key(str(int(REG)-100))][0]
                    
                        elif(get_key(R_M) in ["ah","bh","ch","dh"]):
-                           RegistersValue[get_key(R_M)][1]=RegistersValue[get_key(REG)][1]
-                           RegistersValue[get_key(R_M)][0]=RegistersValue[get_key(REG)][0]  
+                           RegistersValue[get_key(str(int(R_M)-100))][1]=RegistersValue[get_key(str(int(REG)-100))][1]
+                           RegistersValue[get_key(str(int(R_M)-100))][0]=RegistersValue[get_key(str(int(REG)-100))][0]  
          else:
              if(W=="1"):
                  for i in range(3):
@@ -323,24 +324,111 @@ def MOV():
                      RegistersValue[get_key(R_M)][3]=ImmediateValue[1]
                      RegistersValue[get_key(R_M)][2]=ImmediateValue[0]
                  elif(get_key(R_M) in ["ah","bh","ch","dh"]):
-                    RegistersValue[get_key(R_M)][1]=ImmediateValue[1]
-                    RegistersValue[get_key(R_M)][0]=ImmediateValue[0]  
-    elif(MOD=="00"):
-        if(not Immediate):
-            if(W=='1'):
-                MemoryValue[get_mkey(R_M)]=RegistersValue[get_key(REG)]
-                
+                    RegistersValue[get_key(str(int(R_M)-100))][1]=ImmediateValue[1]
+                    RegistersValue[get_key(str(int(R_M)-100))][0]=ImmediateValue[0] 
+                 else:
+                    for i in range(2):
+                        RegistersValue[get_key(R_M)][i+2]=ImmediateValue[i]
+                    
+      elif(MOD=="00"):
+        if(R_M=="110"):#Direct
+            if(W=="0"):
+               if(get_key(REG) in ["al","bl","cl","dl"]):
+                  MemoryValue[Operand1]=RegistersValue[get_key(REG)][2]+RegistersValue[get_key(REG)][3]+'h'
+               elif(get_key(REG) in ["ah","bh","ch","dh"]):
+                  MemoryValue[Operand1]=RegistersValue[get_key(str(int(REG)-100))][0]+RegistersValue[get_key(str(int(REG)-100))][1]+'h'
+            elif(W=="1"):
+                  
+                  MemoryValue[Operand1]=RegistersValue[get_key(REG)][2]+RegistersValue[get_key(REG)][3]+'h'
+                  MemoryValue[hex(int(Operand1[1],16)+1)+'h']=RegistersValue[get_key(REG)][0]+RegistersValue[get_key(REG)][1]+'h'
+        elif(R_M=="111"):#rEGISTERiNDIRECT
+            if(W=="0"):
+                if(get_key(REG) in ["al","bl","cl","dl"]):
+                   MemoryValue["".join(RegistersValue[Operand1])[2:]+'h']=str(RegistersValue[get_key(REG)][2])+str(RegistersValue[get_key(REG)][3])+'h'
+                elif(get_key(REG) in ["ah","bh","ch","dh"]):
+                   MemoryValue["".join(RegistersValue[Operand1])[2:]+'h']=str(RegistersValue[get_key(str(int(REG)-100))][0])+str(RegistersValue[get_key(str(int(REG)-100))][1])+'h'
+            elif(W=="1"):
+                  
+                  MemoryValue["".join(RegistersValue[Operand1])[2:]+'h']=str(RegistersValue[get_key(REG)][2])+str(RegistersValue[get_key(REG)][3])+'h'
+                  MemoryValue[hex(int("".join(RegistersValue[Operand1])[2:],16)+1)+'h']=str(RegistersValue[get_key(REG)][0])+str(RegistersValue[get_key(REG)][1])+'h'    
+      elif(MOD=="01"): #Register Relative
+            if(R_M=="111"):
+                if(W=="0"):
+                    if(get_key(REG) in ["al","bl","cl","dl"]):
+                       MemoryValue[hex(int("".join(RegistersValue[Operand1])[2:],16)+int(Displacement[0],16))+'h']=str(RegistersValue[get_key(REG)][2])+str(RegistersValue[get_key(REG)][3])+'h'
+                    elif(get_key(REG) in ["ah","bh","ch","dh"]):
+                       MemoryValue[hex(int("".join(RegistersValue[Operand1])[2:],16)+int(Displacement[0],16))+'h']=str(RegistersValue[get_key(str(int(REG)-100))][0])+str(RegistersValue[get_key(str(int(REG)-100))][1])+'h'
+                elif(W=="1"):
+                      MemoryValue[hex(int("".join(RegistersValue[Operand1])[2:],16)+int(Displacement[0],16))+'h']=str(RegistersValue[get_key(REG)][2])+str(RegistersValue[get_key(REG)][3])+'h'
+                      MemoryValue[hex(int("".join(RegistersValue[Operand1])[2:],16)+1+int(Displacement[0],16))+'h']=str(RegistersValue[get_key(REG)][0])+str(RegistersValue[get_key(REG)][1])+'h'  
+    elif(D=="1"):
+        if(MOD=="11"):
+                if(W=='1'):
+                    RegistersValue[get_key(REG)]=RegistersValue[get_key(R_M)]
+                elif(W=='0'):
+                    if(get_key(R_M) in ["al","bl","cl","dl"]):
+                        if(get_key(REG) in ["al","bl","cl","dl"]):
+                            RegistersValue[get_key(REG)][3]=RegistersValue[get_key(R_M)][3]
+                            RegistersValue[get_key(REG)][2]=RegistersValue[get_key(R_M)][2]
+                    
+                        elif(get_key(REG) in ["ah","bh","ch","dh"]):
+                            RegistersValue[get_key(str(int(REG)-100))][1]=RegistersValue[get_key(R_M)][3]
+                            RegistersValue[get_key(str(int(REG)-100))][0]=RegistersValue[get_key(R_M)][2]
+                    elif(get_key(R_M) in ["ah","bh","ch","dh"]):
+                         if(get_key(REG) in ["al","bl","cl","dl"]):
+                             RegistersValue[get_key(REG)][3]=RegistersValue[get_key(str(int(R_M)-100))][1]
+                             RegistersValue[get_key(REG)][2]=RegistersValue[get_key(str(int(R_M)-100))][0]
+                     
+                         elif(get_key(REG) in ["ah","bh","ch","dh"]):
+                             RegistersValue[get_key(str(int(REG)-100))][1]=RegistersValue[get_key(str(int(R_M)-100))][1]
+                             RegistersValue[get_key(str(int(REG)-100))][0]=RegistersValue[get_key(str(int(R_M)-100))][0] 
+        elif(MOD=="00"):
+          if(R_M=="110"):#Direct
+              if(W=="0"):
+                 if(get_key(REG) in ["al","bl","cl","dl"]):
+                    RegistersValue[get_key(REG)][2]=MemoryValue[Operand2][0]
+                    RegistersValue[get_key(REG)][3]=MemoryValue[Operand2][1]
+                 elif(get_key(REG) in ["ah","bh","ch","dh"]):
+                    RegistersValue[get_key(str(int(REG)-100))][0]=MemoryValue[Operand2][0]
+                    RegistersValue[get_key(str(int(REG)-100))][1]=MemoryValue[Operand2][1]
+                 else:
+                     RegistersValue[get_key(REG)][2]=MemoryValue[Operand2][0]
+                     RegistersValue[get_key(REG)][3]=MemoryValue[Operand2][1]
+          elif(R_M=="111"):#Register Indirect
+              if(W=="0"):
+                  if(get_key(REG) in ["al","bl","cl","dl"]):
+                     RegistersValue[get_key(REG)][2]=MemoryValue["".join(RegistersValue[Operand2])[2:]+'h'][0]
+                     RegistersValue[get_key(REG)][3]=MemoryValue["".join(RegistersValue[Operand2])[2:]+'h'][1]
+                  elif(get_key(REG) in ["ah","bh","ch","dh"]):
+                     RegistersValue[get_key(str(int(REG)-100))][0]=MemoryValue["".join(RegistersValue[Operand2])[2:]+'h'][0]
+                     RegistersValue[get_key(str(int(REG)-100))][1]=MemoryValue["".join(RegistersValue[Operand2])[2:]+'h'][1]
+                  else:
+                      RegistersValue[get_key(REG)][2]=MemoryValue["".join(RegistersValue[Operand2])[2:]+'h'][0]
+                      RegistersValue[get_key(REG)][3]=MemoryValue["".join(RegistersValue[Operand2])[2:]+'h'][1]
+        elif(MOD=="01"):
+            if(R_M=="111"):#Register Indirect
+                if(W=="0"):
+                    if(get_key(REG) in ["al","bl","cl","dl"]):
+                       RegistersValue[get_key(REG)][2]=MemoryValue["".join(RegistersValue[Operand2])[2:]+'h'][0]
+                       RegistersValue[get_key(REG)][3]=MemoryValue["".join(RegistersValue[Operand2])[2:]+'h'][1]
+                    elif(get_key(REG) in ["ah","bh","ch","dh"]):
+                       RegistersValue[get_key(str(int(REG)-100))][0]=MemoryValue["".join(RegistersValue[Operand2])[2:]+'h'][0]
+                       RegistersValue[get_key(str(int(REG)-100))][1]=MemoryValue["".join(RegistersValue[Operand2])[2:]+'h'][1]
+                    else:
+                        RegistersValue[get_key(REG)][2]=MemoryValue["".join(RegistersValue[Operand2])[2:]+'h'][0]
+                        RegistersValue[get_key(REG)][3]=MemoryValue["".join(RegistersValue[Operand2])[2:]+'h'][1]
+            
 #def Execute():
-    
+
+
     
         
         
 MachineCodeGenerator(Example)
-MOV(REG,R_M)
-print(RegistersValue["ah"])
-print(RegistersValue["al"])
-RegistersValue[get_key(R_M)]=RegistersValue[get_key(REG)]
-print(RegistersValue[get_key(R_M)])
+MOV()
+
+
+
 print(MachineCode)
 print(Invalid)
 
